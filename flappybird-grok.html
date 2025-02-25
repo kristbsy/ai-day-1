@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="480" height="640"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game variables
+        const bird = {
+            x: 50,
+            y: 150,
+            width: 20,
+            height: 20,
+            gravity: 0.6,
+            lift: -8, // Reduced from -15 to -8 for gentler jump
+            velocity: 0
+        };
+
+        const pipes = [];
+        const pipeWidth = 50;
+        const pipeGap = 120;
+        let score = 0;
+        let frameCount = 0;
+        let gameOver = false;
+
+        // Jump event listener
+        document.addEventListener('keydown', (e) => {
+            if (!gameOver && e.code === 'Space') { // Only spacebar for jumping
+                bird.velocity = bird.lift;
+            }
+        });
+
+        // Separate restart event listener
+        document.addEventListener('keydown', (e) => {
+            if (gameOver) {
+                resetGame();
+                gameLoop(); // Restart the game loop
+            }
+        });
+
+        // Create new pipe
+        function createPipe() {
+            const pipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 100)) + 50;
+            pipes.push({
+                x: canvas.width,
+                topHeight: pipeHeight,
+                bottomHeight: canvas.height - pipeHeight - pipeGap,
+                counted: false
+            });
+        }
+
+        // Reset game
+        function resetGame() {
+            bird.y = 150;
+            bird.velocity = 0;
+            pipes.length = 0;
+            score = 0;
+            gameOver = false;
+            frameCount = 0;
+        }
+
+        // Main game loop
+        function gameLoop() {
+            // Clear canvas
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update bird
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Draw bird
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+
+            // Ground collision
+            if (bird.y + bird.height > canvas.height || bird.y < 0) {
+                gameOver = true;
+            }
+
+            // Pipe generation
+            if (frameCount % 100 === 0) {
+                createPipe();
+            }
+
+            // Update and draw pipes
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= 2;
+
+                // Draw pipes
+                ctx.fillStyle = 'green';
+                ctx.fillRect(pipes[i].x, 0, pipeWidth, pipes[i].topHeight);
+                ctx.fillRect(pipes[i].x, canvas.height - pipes[i].bottomHeight, 
+                           pipeWidth, pipes[i].bottomHeight);
+
+                // Collision detection
+                if (bird.x + bird.width > pipes[i].x && 
+                    bird.x < pipes[i].x + pipeWidth) {
+                    if (bird.y < pipes[i].topHeight || 
+                        bird.y + bird.height > canvas.height - pipes[i].bottomHeight) {
+                        gameOver = true;
+                    }
+                }
+
+                // Score
+                if (!pipes[i].counted && bird.x > pipes[i].x + pipeWidth) {
+                    score++;
+                    pipes[i].counted = true;
+                }
+
+                // Remove off-screen pipes
+                if (pipes[i].x + pipeWidth < 0) {
+                    pipes.splice(i, 1);
+                }
+            }
+
+            // Draw score
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+
+            // Game over screen
+            if (gameOver) {
+                ctx.fillText('Game Over! Press any key to restart', 
+                           canvas.width/2 - 140, canvas.height/2);
+            } else {
+                frameCount++;
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>
